@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+    <style>
+      #hiddenCanvas {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="frameCounter"></p>
+    <video src="" id="camera"></video>
+    <canvas id="hiddenCanvas"></canvas>
+  </body>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    //Socket
+    const socket = io("http://localhost:3000");
+
+    socket.on("time", date => {
+      console.log(date);
+    });
+
+    //Emitting Frame
+    const emitFrame = () => {
+      let cnvBlob = getFrame();
+      socket.emit("cameraFrame", { cameraBlob: cnvBlob });
+    };
+
+    const getFrame = () => {
+      hiddenCtx.drawImage(camera, 0, 0);
+      return hiddenCanvas.toBlob();
+    };
+
+    //Canvas
+    const hiddenCanvas = document.querySelector("#hiddenCanvas");
+    const hiddenCtx = hiddenCanvas.getContext("2d");
+    //Camera
+    const camera = document.querySelector("#camera");
+
+    const constraints = {
+      audio: true,
+      video: { width: 720, height: 480 }
+    };
+    //getMedia
+    const getMedia = async constraints => {
+      let stream = null;
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (stream == null) {
+        camera.innerHTML = "No devices found! :(";
+      } else {
+        camera.srcObject = stream;
+        hiddenCanvas.width = constraints.width;
+        hiddenCanvas.height = constraints.height;
+        setInterval(emitFrame, 1000);
+      }
+    };
+
+    //Frame Counter
+    var frameCount = 0;
+    const frameCounter = document.querySelector("#frameCounter");
+
+    const loop = () => {
+      frameCount++;
+      frameCounter.innerHTML = frameCount;
+      requestAnimationFrame(loop);
+    };
+
+    //Flow
+    getMedia();
+  </script>
+</html>
